@@ -1,4 +1,4 @@
-# macOSDeviceNaming
+# macOSDeviceNaming Script
 
 This script is for naming macOS devices. It was designed as a supplement for DEP enrollments, but can really be used anytime you wish to update a computer name. 
 
