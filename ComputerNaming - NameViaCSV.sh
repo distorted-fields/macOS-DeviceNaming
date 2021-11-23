@@ -9,6 +9,7 @@
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 spreadsheet_id="1CjLv3lfAYtAVmO1yuxVFoL_bFAusntITgjvdzdeEbb4" #Spreadsheet needs "Anyone with link access"
 csv_location="/var/tmp/computernames.csv"
+bind_trigger="bindme" # Jamf Pro policy that will bind computer again. 
 
 # Check the domain returned with dsconfigad
 domain=$( dsconfigad -show | awk '/Active Directory Domain/{print $NF}' )
@@ -43,7 +44,7 @@ if [ -z "$domain" ]; then
 	echo "Mac was not bound, skipping rebind..."
 else
 	echo "Mac was bound, rebinding..."
-	jamf policy -event bindme
+	jamf policy -event $bind_trigger
 fi
 
 #exit script gracefully
