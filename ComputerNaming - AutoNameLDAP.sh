@@ -7,6 +7,11 @@
 #  
 #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+ldap_server=""
+ldap_user=""
+ldap_pass=""
+computerOU=""
+
 JAMF_BINARY="/usr/local/bin/jamf"
 
 # Get User
@@ -14,7 +19,7 @@ user=$(defaults read /Library/Preferences/com.apple.loginwindow lastUserName)
 first_name=$(echo $user | cut -d'_' -f 1)
 last_name=$(echo $user | cut -d'_' -f 2)
 userfullname=$first_name$last_name
-site_prefix=$( ldapsearch -H 'ldap://ah.isd11' -x -D 'Casper_Bind@ah.isd11' -w 'cspw4wb!' -b 'ou=staff,dc=ah,dc=isd11' '(sAMAccountName='$user')' division | grep 'division: ' | awk '{print $2}')
+site_prefix=$( ldapsearch -H 'ldap://'$ldap_server -x -D $ldap_user -w $ldap_pass -b $computerOU '(sAMAccountName='$user')' division | grep 'division: ' | awk '{print $2}')
 if ["$site_prefix" == ""]; then
 	site_prefix="unknown"
 fi
