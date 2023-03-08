@@ -2,50 +2,28 @@
 #
 #
 #     Created by A.Hodgson
-#      Date: 03/03/2021
-#      Purpose: Unbind, rename, bind
+#      Date: 2022-09-07
+#      Purpose: name computer by CSV, failover to serial if not in CSV
 #  
 #
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
-spreadsheet_id="1CjLv3lfAYtAVmO1yuxVFoL_bFAusntITgjvdzdeEbb4" #Spreadsheet needs "Anyone with link access"
-csv_location="/var/tmp/computernames.csv"
-bind_trigger="bindme" # Jamf Pro policy that will bind computer again. 
+############################################################# 
+sheetID="" #Spreadsheet ID = https://docs.google.com/spreadsheets/d/THIS_IS_THE_ID/edit needs "Anyone with link access"
+omitRows="1" # number of rows at the top of the sheet to omit (IE Headers)
+#############################################################
+# letter designation of the column in the sheet for the device serial numbers
+serialCol="A"
+# letter designation of the colum in the sheet for the custom device name
+nameCol="B"
 
-# Check the domain returned with dsconfigad
-domain=$( dsconfigad -show | awk '/Active Directory Domain/{print $NF}' )
-# Unbind if bound
-if [ -z "$domain" ]; then
-	echo "Mac is not bound..."
+# get the device serial number
+serialNumber=$(system_profiler SPHardwareDataType | awk '/Serial/ {print $4}')
+#Look up serial number from Google Sheet using the Google visualization api
+name=$(curl -sL "https://docs.google.com/spreadsheets/d/$sheetID/gviz/tq?tqx=out:csv&tq=select%20$nameCol%20WHERE%20$serialCol%3D%27$serialNumber%27" | sed 's/"//g' | tail -n+$((omitRows+1)))
+echo "Name: $name"
+
+if [[ "$name" == "" ]]; then
+	echo "Failed by CSV, using Serial Number instead"
+	jamf setComputerName -name "$serialNumber"
 else
-	echo "Mac is bound, unbinding..."
-	dsconfigad -force -remove -u "Casper_Bind" -p "cspw4wb!"
+	jamf setComputerName -name "$name"
 fi
-
-# Check for an existing file
-if [ -e "$csv_location" ]; then
-	rm -f $csv_location
-fi
-
-# download the list
-curl -s -o $csv_location https://docs.google.com/spreadsheets/d/$spreadsheet_id/gviz/tq?tqx=out:csv
-chmod 777 $csv_location
-awk '{gsub(/\"/,"")};1' $csv_location  > /var/tmp/converted.csv
-
-# name the computer
-jamf setComputerName -fromFile /var/tmp/converted.csv 
-
-
-# remove CSV files
-rm -rf $csv_location
-rm -rf /var/tmp/converted.csv
-
-# rebind computer if bound before
-if [ -z "$domain" ]; then
-	echo "Mac was not bound, skipping rebind..."
-else
-	echo "Mac was bound, rebinding..."
-	jamf policy -event $bind_trigger
-fi
-
-#exit script gracefully
-exit $status 
